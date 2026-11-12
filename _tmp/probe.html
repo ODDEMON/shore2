@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>shot probe</title>
+<style>
+  html,body{ margin:0; height:100%; background:#000; overflow:hidden; }
+  iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+</style>
+</head>
+<body>
+<iframe id="f" src="/"></iframe>
+<script>
+/* 截图探针：同源 iframe 里把按键 / 总线事件送进真实页面，只用于视觉验收。
+   ?key=Tab / ?bus=due / ?key=c 三种状态；不进产品代码。 */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var key = q.get('key') || '';
+  var bus = q.get('bus') || '';
+  var code = q.get('code') ||
+             (/^[a-z]$/i.test(key) ? 'Key' + key.toUpperCase() : key);
+  var f = document.getElementById('f');
+  f.addEventListener('load', function () {
+    setTimeout(function () {
+      var w = f.contentWindow;
+      if (key) {
+        w.dispatchEvent(new w.KeyboardEvent('keydown', {
+          key: key, code: code, bubbles: true, cancelable: true
+        }));
+      }
+      if (bus === 'due' && w.BT && w.BT.bus && w.BT.sim) {
+        w.BT.bus.emit('chapter:due', {
+          chapter: w.BT.sim.state().chapter,
+          panel: w.BT.sim.state().panels,
+          options: w.BT.sim.agendaOptions()
+        });
+      }
+      if (bus === 'log') {
+        w.dispatchEvent(new w.KeyboardEvent('keydown', {
+          key: 'e', code: 'KeyE', bubbles: true, cancelable: true
+        }));
+      }
+      /* 无头虚拟时间几乎不给合成帧，CSS 淡入会停在半途。
+         探针只把「已经打开」的卡直接推到终态，用来看清版式，不改产品代码。 */
+      if (bus) {
+        var cards = w.document.querySelectorAll('.ag-card,.ch-card.on,.lo-card.on');
+        for (var i = 0; i < cards.length; i++) {
+          cards[i].style.transition = 'none';
+          cards[i].style.opacity = '1';
+        }
+      }
+    }, 1200);
+  });
+})();
+</script>
+</body>
+</html>

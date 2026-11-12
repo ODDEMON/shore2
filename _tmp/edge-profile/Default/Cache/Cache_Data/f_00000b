@@ -1,0 +1,509 @@
+/* 视觉。首帧兜底的底色与第一版色板 0 一致，之后由世界层的 PALETTE 接管。
+   近黑不是为了氛围，是为了让「一面雾白的巨面」能被当成体量来读。
+   第十七稿：背景从「夜空」换成「夜里的一页横格纸」（世界层 paper.js 负责画），
+   所以面板与残页的墨底跟着调暖一档——盖在暖纸上的黑块不能是冷的。
+   第八稿的结论照旧生效：没有霓虹发光、没有扫描线、没有暗角。 */
+:root{
+  /* 七色原色：正红 正黄 正蓝 正绿 正紫 亮粉 亮青。
+     不做高级灰、不做粉紫近白、不加柔光。底纯黑、骨线纯白、体量纯色。
+     色值只在这里写一次，下面全部走变量；运行期由 denpa.js 单点写 --dn-*。 */
+  --sky:#000000;
+  --ink:#000000;
+  --neon:#00ffff;
+  --neon2:#ff2d95;
+  --paper:#ffffff;
+  --glow:#ffffff;
+  --folio-line:#ffff00;
+  --folio-dim:#8000ff;
+  --folio-cyan:#00ffff;
+  --folio-pink:#ff2d95;
+  --sheet:rgba(0,0,0,0.94);
+  /* UI 的三组 RGB 分量：边框、点缀、纸底一次性换成七色体系。 */
+  --ui-edge-rgb:0,255,255;
+  --ui-tint-rgb:255,255,0;
+  --ui-bg-rgb:0,0,0;
+  --ui-paper-rgb:255,255,255;
+  /* 电波层每帧写入；body.low 会覆盖成安全值，双保险。 */
+  --dn-chroma:0px;
+  --dn-melt:0em;
+  --dn-bloom:0;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  background:var(--sky);
+}
+
+#stage{
+  display:block;
+  width:100%;
+  height:100%;
+  touch-action:none;
+  cursor:none;
+}
+
+/* 不做全局像素对齐：它会把不足一像素的细刻度整根吃掉，也会把环形站的
+   斜边锯齿化。硬边由几何本身保证，抗锯齿交给渲染器。
+   第一版没有统一描边，块面靠明度硬切；描边链由 SCORE_TABLES.INK 控制。 */
+#stage #world path{
+  shape-rendering:geometricPrecision;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+}
+
+/* 扫描线与暗角：第八稿回到第一版的干净硬边，覆盖层整体停用。
+   元素保留（文字层的 DOM 顺序断言依赖它），但不再画任何东西进画面。 */
+#scan{
+  position:fixed;
+  inset:0;
+  z-index:5;
+  pointer-events:none;
+  background:none;
+}
+
+/* 全屏入口：右下角一枚极淡的字，不进画面构图。stage 是 cursor:none，
+   按钮自己把光标还回来；只有 hover / 键盘聚焦才看清楚。 */
+#fs{
+  position:fixed;
+  right:14px;
+  bottom:12px;
+  z-index:8;
+  background:rgba(var(--ui-bg-rgb),0.55);
+  border:1px solid rgba(var(--ui-edge-rgb),0.28);
+  color:var(--paper);
+  font:10px/1 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  letter-spacing:0.18em;
+  padding:7px 10px;
+  opacity:0.32;
+  cursor:pointer;
+  user-select:none;
+  transition:opacity .25s ease,border-color .25s ease;
+}
+#fs:hover,#fs:focus-visible{ opacity:1; border-color:var(--neon2); outline:none; }
+#fs[aria-pressed="true"]{ opacity:0.72; }
+
+/* 调音台：低存在感不变。墨底 + 一道柔和收边 + 雾白字，
+   不再有霓虹描边与外发光。panel 上光标恢复——展品之外的一小块操作台。 */
+#panel{
+  position:fixed;
+  right:14px;
+  top:14px;
+  width:236px;
+  padding:12px 14px 14px;
+  background:rgba(var(--ui-bg-rgb),0.92);
+  border:1px solid rgba(var(--ui-edge-rgb),0.5);
+  box-shadow:0 0 0 1px var(--ink);
+  color:var(--paper);
+  font:12px/1.7 "Segoe UI",system-ui,sans-serif;
+  z-index:10;
+  cursor:default;
+  user-select:none;
+}
+#panel[hidden]{ display:none; }
+#panel .od-t{
+  letter-spacing:0.28em;
+  color:var(--glow);
+  opacity:0.78;
+  margin-bottom:8px;
+}
+#panel .od-presets{ margin-bottom:10px; }
+/* 视野档位。选中态只靠一圈极淡的雾白底。 */
+#panel .od-cam{ display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+#panel .od-k{ width:3em; opacity:0.6; flex:none; }
+#panel .od-c{
+  background:none;
+  border:1px solid rgba(169,191,201,0.35);
+  color:var(--paper);
+  padding:2px 8px;
+  cursor:pointer;
+  font:inherit;
+}
+#panel .od-c:hover{ border-color:var(--neon); color:var(--glow); }
+#panel .od-c.on{ border-color:var(--neon); color:var(--glow); background:rgba(169,191,201,0.14); }
+#panel .od-p{
+  background:none;
+  border:1px solid rgba(169,191,201,0.35);
+  color:var(--paper);
+  padding:2px 12px;
+  margin-right:6px;
+  cursor:pointer;
+  font:inherit;
+}
+#panel .od-p:hover{ border-color:var(--neon2); color:var(--glow); }
+/* 音色行：导入 / 复位两个小按钮 + 池子里的音色数。
+   和视野档位长得一样，但不能共用 .od-c——那一类是「单选档位」，会被计数器数进去。 */
+#panel .od-io{ display:flex; align-items:center; gap:6px; margin-bottom:10px; }
+#panel .od-b{
+  background:none;
+  border:1px solid rgba(var(--ui-edge-rgb),0.35);
+  color:var(--paper);
+  padding:2px 8px;
+  cursor:pointer;
+  font:inherit;
+}
+#panel .od-b:hover{ border-color:var(--neon2); color:var(--glow); }
+#panel .od-tv{
+  margin-left:auto;
+  opacity:0.7;
+  font-variant-numeric:tabular-nums;
+}
+#panel .od-row{ display:flex; align-items:center; gap:8px; margin:7px 0; }
+#panel .od-row label{ width:3em; opacity:0.85; flex:none; }
+#panel .od-row input[type=range]{
+  flex:1;
+  accent-color:var(--neon2);
+  height:2px;
+}
+#panel .od-v{
+  width:3.4em;
+  text-align:right;
+  opacity:0.7;
+  font-variant-numeric:tabular-nums;
+  flex:none;
+}
+
+/* ---- 残页：随长卷浮现的剧情文本 ------------------------------------
+   不是字幕条，是印在夜色里的一小块纸：左实右化开的墨底 + 一根柔光书脊。
+   落点全在上方留白与下方雾带，避开右上调音台，也不压建筑最密的中带。
+   淡入只用 opacity：不碰 transform，无头渲染链断不掉。 */
+#lore{
+  position:fixed;
+  inset:0;
+  z-index:7;
+  pointer-events:none;
+  --lore-neon:#00ffff;
+  --lore-paper:#ffffff;
+  --lore-ink:#000000;
+  --lore-bg:#000000;
+  font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.lo-card{
+  position:absolute;
+  box-sizing:border-box;
+  width:max-content;
+  max-width:min(470px,78vw);
+  padding:13px 26px 12px 20px;
+  background:linear-gradient(90deg,
+    rgba(var(--ui-bg-rgb),0.86) 0%, rgba(var(--ui-bg-rgb),0.72) 58%, rgba(var(--ui-bg-rgb),0) 100%);
+  opacity:0;
+  transition:opacity 1.05s ease;
+}
+.lo-card.on{ opacity:1; }
+/* 落点收在上沿留白与下方雾带，别压住建筑最密的中段。
+   左上角留给卷号批注、左下角留给读数，五处都不越过 x=80%。 */
+.lo-a{ left:26%;   top:7%; }
+.lo-b{ left:50%;   top:5%; }
+.lo-c{ left:26%;   top:20%; }
+.lo-d{ left:7%;    bottom:17%; }
+.lo-e{ left:42%;   bottom:15%; }
+
+.lo-rule{
+  position:absolute;
+  left:0;
+  top:12%;
+  bottom:12%;
+  width:2px;
+  background:var(--lore-neon);
+  opacity:0.62;
+}
+.lo-card.lo-anchor .lo-rule{ width:3px; opacity:0.9; }
+
+.lo-tag{
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  margin-bottom:9px;
+  font-size:10px;
+  letter-spacing:0.24em;
+  color:var(--lore-neon);
+  opacity:0.75;
+}
+.lo-tag b{ font-weight:600; }
+.lo-tag i{
+  font-style:normal;
+  font-size:9px;
+  letter-spacing:0.14em;
+  opacity:0.55;
+  text-transform:uppercase;
+}
+.lo-line{
+  color:var(--lore-paper);
+  font-size:clamp(15px,1.45vw,20px);
+  line-height:1.85;
+  letter-spacing:0.02em;
+  /* 偶尔两行的句子别把最后一个字单独吊到下一行。 */
+  text-wrap:pretty;
+  text-shadow:0 2px 14px rgba(0,0,0,0.9);
+}
+.lo-foot{
+  margin-top:10px;
+  font-size:9px;
+  letter-spacing:0.16em;
+  color:var(--lore-paper);
+  opacity:0.42;
+  font-variant-numeric:tabular-nums;
+}
+
+/* 低烈度：字还在、墨线还在，只把发光与标签收掉，出字也更稀。
+   不压整张卡的 opacity——那会把正文一起压进浅色建筑里，「安静」变成「看不清」。 */
+.lo-card.lo-quiet .lo-rule{ box-shadow:none; opacity:0.45; }
+.lo-card.lo-quiet .lo-tag{ opacity:0.55; }
+.lo-card.lo-quiet .lo-line{ opacity:0.8; text-shadow:0 1px 6px rgba(0,0,0,0.85); }
+.lo-card.lo-quiet .lo-foot{ opacity:0.3; }
+
+@media (max-width:760px){
+  .lo-a,.lo-b,.lo-c,.lo-d,.lo-e{ left:5%; right:5%; top:auto; bottom:auto; }
+  .lo-a,.lo-b{ top:8%; }
+  .lo-c{ top:22%; }
+  .lo-d,.lo-e{ bottom:18%; }
+  .lo-card{ max-width:90vw; }
+  #fs{ font-size:11px; padding:9px 12px; }
+}
+
+
+/* ================= 二代 · 再版的四块纸面 =================
+   气质照旧：暖墨底、雾白字、极细线、大字距、硬边、没有圆角与投影。
+   所有覆盖层都不吃输入，除了册页自己那几枚按钮。
+   动只许改 opacity 与进度条 width —— 不碰 transform，无头渲染链断不掉。 */
+
+.ui-head{ display:flex; align-items:baseline; gap:12px; }
+.ui-head-zh{ font-size:11px; letter-spacing:0.30em; color:var(--glow); opacity:0.86; }
+.ui-head-en{ font:9px/1 ui-monospace,Consolas,monospace; letter-spacing:0.20em;
+             color:var(--paper); opacity:0.40; text-transform:uppercase; }
+.ui-head-right{ margin-left:auto; font:9px/1 ui-monospace,Consolas,monospace;
+                letter-spacing:0.14em; color:var(--paper); opacity:0.46; }
+.ui-rule{ height:1px; background:var(--folio-line); opacity:0.20; margin:11px 0 13px; }
+.ui-btn{ background:none; border:1px solid rgba(var(--ui-edge-rgb),0.34); color:var(--paper);
+         font:10px/1 ui-monospace,Consolas,monospace; letter-spacing:0.14em;
+         padding:6px 11px; cursor:pointer; user-select:none; transition:border-color .2s,color .2s; }
+.ui-btn:hover:not(:disabled),.ui-btn:focus-visible{ border-color:var(--neon2); color:var(--glow); outline:none; }
+.ui-btn:disabled{ opacity:0.28; cursor:default; }
+.ui-ticks{ display:flex; gap:2px; }
+.ui-ticks i{ display:block; width:3px; height:4px; background:var(--paper); opacity:0.14; }
+.ui-ticks i.on{ background:var(--neon2); opacity:0.82; }
+
+/* 栏外批注：左上角的卷号与右下角的张号，是印在纸边的字，不是仪表盘。 */
+#imprint{ position:fixed; inset:0; z-index:6; pointer-events:none;
+          font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+.im-badge{ position:absolute; left:4.6%; top:6.4%; width:200px;
+           color:var(--paper); opacity:0.62; }
+.im-vol{ display:flex; align-items:baseline; gap:9px; margin-top:9px; }
+.im-vol b{ font:400 19px/1 Georgia,"Times New Roman",serif; letter-spacing:0.10em;
+           color:var(--glow); }
+/* 版次是一行印死的铅字，不许折行把 EDITION 单甩到第二行。 */
+.im-vol span{ font:8px/1 ui-monospace,Consolas,monospace; letter-spacing:0.10em;
+              white-space:nowrap; opacity:0.52; }
+.im-badge .ui-rule{ margin:9px 0 8px; }
+.im-foot{ display:flex; justify-content:space-between; font:9px/1 ui-monospace,Consolas,monospace;
+          letter-spacing:0.13em; opacity:0.55; }
+.im-side{ position:absolute; right:1.1%; top:34%; writing-mode:vertical-rl;
+          font-size:9px; letter-spacing:0.55em; color:var(--paper); opacity:0.20; }
+
+/* 读数：左下地脚留白里的一行等宽字。 */
+#hud{ position:fixed; left:3.1%; bottom:2.2%; z-index:8; pointer-events:none;
+      padding:7px 16px 7px 14px;
+      background:linear-gradient(90deg, rgba(var(--ui-bg-rgb),0.80) 0%, rgba(var(--ui-bg-rgb),0.62) 62%, rgba(var(--ui-bg-rgb),0) 100%);
+      font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+.hu-line{ display:flex; align-items:baseline; gap:13px;
+          font:10px/1 ui-monospace,Consolas,monospace; letter-spacing:0.12em;
+          color:var(--paper); opacity:0.58; }
+.hu-line b{ font-weight:400; color:var(--glow); opacity:0.92; }
+.hu-ticks{ margin-top:8px; }
+.hu-mode{ margin-top:7px; font:9px/1 ui-monospace,Consolas,monospace;
+          letter-spacing:0.24em; color:var(--paper); opacity:0.34; }
+.hu-mode.hu-browse{ color:var(--neon2); opacity:0.78; }
+.hu-hint{ margin-top:10px; font:9px/1 ui-monospace,Consolas,monospace;
+          letter-spacing:0.10em; color:var(--paper); opacity:0;
+          transition:opacity .9s ease; }
+.hu-hint.on{ opacity:0.34; }
+
+/* 界标：换界时浮起的一张标题卡，留在上方留白里，不挡建筑最密的中带。 */
+#chapter{ position:fixed; inset:0; z-index:7; pointer-events:none; }
+.ch-card{ position:absolute; left:0; right:0; top:12.5%; width:min(420px,80vw);
+          margin:0 auto;
+          text-align:center; opacity:0; transition:opacity 1.0s ease;
+          font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+.ch-card.on{ opacity:1; }
+.ch-no{ font:10px/1 ui-monospace,Consolas,monospace; letter-spacing:0.42em;
+        color:var(--neon2); opacity:0.72; }
+.ch-rule{ margin:13px auto 15px; width:56px; opacity:0.42; }
+.ch-name{ font:400 clamp(24px,3.2vw,42px)/1.2 Georgia,"Times New Roman",serif;
+          letter-spacing:0.16em; color:var(--glow); }
+.ch-note{ margin-top:12px; font-size:11px; letter-spacing:0.16em;
+          color:var(--paper); opacity:0.52; }
+.ch-foot{ margin-top:18px; font:9px/1 ui-monospace,Consolas,monospace;
+          letter-spacing:0.18em; color:var(--paper); opacity:0.34; }
+
+/* 册页：TAB 展开的一整册。近黑暖纸，硬边，无投影。 */
+#archive{ position:fixed; inset:0; z-index:11; display:flex;
+          align-items:center; justify-content:center;
+          background:rgba(6,7,7,0.76); }
+#archive[hidden]{ display:none; }
+.ar-sheet{ box-sizing:border-box; width:min(940px,92vw); max-height:88vh; overflow:auto;
+           padding:26px 30px 22px; background:#100e0c;
+           border:1px solid rgba(var(--ui-edge-rgb),0.34);
+           box-shadow:0 0 0 1px var(--ink);
+           font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+           color:var(--paper); cursor:default; }
+.ar-stats{ display:flex; flex-wrap:wrap; gap:20px; margin-top:13px;
+           font:10px/1 ui-monospace,Consolas,monospace; letter-spacing:0.11em;
+           color:var(--paper); opacity:0.66; }
+.ar-stats span:first-child{ color:var(--glow); opacity:0.96; }
+.ar-sec{ margin:19px 0 10px; font-size:10px; letter-spacing:0.26em;
+         color:var(--neon2); opacity:0.72; }
+.ar-grid{ display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
+.ar-cell{ position:relative; box-sizing:border-box; min-height:44px; padding:7px 8px;
+          border:1px solid rgba(var(--ui-paper-rgb),0.11); background:rgba(var(--ui-paper-rgb),0.018);
+          display:flex; flex-direction:column; justify-content:space-between; }
+.ar-cell.got{ border-color:rgba(var(--ui-tint-rgb),0.46); background:rgba(var(--ui-tint-rgb),0.075); }
+.ar-cell.rare:not(.got){ border-color:rgba(169,191,201,0.30); }
+.ar-no{ font:9px/1 ui-monospace,Consolas,monospace; opacity:0.42; }
+.ar-nm{ font-size:10px; letter-spacing:0.04em; opacity:0.78; }
+.ar-st{ position:absolute; right:7px; top:6px; font-size:10px; opacity:0.48; }
+.ar-cell.got .ar-st{ color:var(--neon2); opacity:0.95; }
+.ar-offer{ display:grid; gap:4px; }
+.ar-row{ display:grid; grid-template-columns:34px 1fr auto auto; align-items:center;
+         gap:12px; padding:7px 9px; border:1px solid rgba(var(--ui-paper-rgb),0.10); }
+.ar-rn{ font:9px/1 ui-monospace,Consolas,monospace; opacity:0.42; }
+.ar-rt{ font-size:11px; letter-spacing:0.06em; }
+.ar-rc{ font:9px/1 ui-monospace,Consolas,monospace; opacity:0.52; }
+.ar-log{ padding:4px 9px; }
+.ar-empty{ padding:10px 9px; font-size:10px; letter-spacing:0.10em; opacity:0.40; }
+.ar-picks{ display:flex; gap:7px; }
+.ar-chip{ padding:5px 12px; border:1px solid rgba(var(--ui-paper-rgb),0.12);
+          font-size:10px; letter-spacing:0.14em; opacity:0.36; }
+.ar-chip.on{ border-color:rgba(var(--ui-tint-rgb),0.42); color:var(--glow); opacity:0.84; }
+.ar-acts{ display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+.ar-foot{ margin-top:15px; font-size:9px; letter-spacing:0.10em; line-height:1.7;
+          color:var(--paper); opacity:0.34; }
+
+/* ============ 电波层 ============
+   压在 SVG 之上、所有文字 UI 之下。色差用 mix-blend-mode，波形坐标算进 d，
+   不碰 filter / transform / canvas。所有元素一次建好，运行期只改属性。 */
+#denpa{ position:fixed; inset:0; z-index:4; pointer-events:none; overflow:hidden; }
+#denpa > *{ position:absolute; }
+.dn-wave{ inset:0; width:100%; height:100%; mix-blend-mode:screen; }
+.dn-slices,.dn-chroma,.dn-grain,.dn-glyphs{ inset:0; }
+.dn-slice{ display:block; position:absolute; mix-blend-mode:screen; opacity:0; }
+.dn-ch{ display:block; position:absolute; top:0; left:-60px;
+        width:calc(100% + 120px); height:100%; mix-blend-mode:screen; opacity:0; }
+.dn-gr{ display:block; position:absolute; width:2px; height:2px;
+        mix-blend-mode:screen; opacity:0; }
+.dn-gl{ position:absolute; white-space:nowrap; font:700 11px/1 ui-monospace,Consolas,monospace;
+        letter-spacing:0.24em; mix-blend-mode:screen; opacity:0;
+        text-shadow:calc(var(--dn-chroma) * -0.5) 0 rgba(0,255,255,0.85),
+                    calc(var(--dn-chroma) * 0.5) 0 rgba(255,0,0,0.85); }
+.dn-scan{ inset:0; opacity:0;
+          background:repeating-linear-gradient(0deg,
+            rgba(0,0,0,0.42) 0 1px, rgba(0,0,0,0) 1px 4px); }
+.dn-boost{ inset:0; mix-blend-mode:hard-light; opacity:0;
+           background:radial-gradient(ellipse at 50% 46%,
+             rgba(255,255,255,0.34) 0%, rgba(255,255,255,0) 46%,
+             rgba(0,0,0,0.58) 100%); }
+.dn-vignette{ inset:0; opacity:0;
+              background:radial-gradient(ellipse at 50% 48%,
+                rgba(0,0,0,0) 32%, rgba(0,0,0,0.92) 100%); }
+.dn-burst{ inset:0; background:#ffffff; mix-blend-mode:screen; opacity:0; }
+
+/* UI 文字只吃色差与字距，不被波形与闪白盖住。可读性不是审美让步。 */
+.im-vol b,.ch-name,.ui-head-zh,.lo-line{
+  text-shadow:calc(var(--dn-chroma) * -0.14) 0 rgba(0,255,255,0.72),
+              calc(var(--dn-chroma) * 0.14) 0 rgba(255,0,0,0.72);
+}
+.lo-line{ letter-spacing:calc(0.06em + var(--dn-melt)); }
+
+/* 高对比版把读数与栏外批注的透明度抬回来：原本的「极淡」是给暖纸的，
+   压在荧光紫底上会直接消失。字要亮，狂乱留给画面，不留给可读性。 */
+.im-badge{ opacity:0.92; }
+.hu-line{ opacity:0.92; }
+.hu-mode,.hu-hint{ opacity:0.62; }
+.lo-line{ opacity:1; }
+/* 残页正文不吃色板的纯原色：正蓝 / 正红在黑底上读不动。
+   色板只管点缀与描边，正文一律纯白，这是可读性底线。 */
+#lore .lo-line{ color:#ffffff; }
+.ui-head-zh{ opacity:1; }
+#dn-warn{ opacity:0.86; }
+
+/* 光敏提示常驻。警告不是弹窗，是这版纸的一部分。 */
+#dn-warn{ position:fixed; left:0; right:0; top:10px; margin:0 auto;
+          width:fit-content; max-width:88vw; z-index:13; box-sizing:border-box;
+          padding:6px 13px; pointer-events:none;
+          background:rgba(0,0,0,0.86); border:1px solid rgba(255,255,0,0.48);
+          color:var(--paper); opacity:0.72;
+          font:9px/1.65 "Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+          letter-spacing:0.08em; }
+#dn-warn b{ color:#ffff00; font-weight:600; letter-spacing:0.18em; }
+#dn-warn kbd{ font:9px/1 ui-monospace,Consolas,monospace; color:#00ffff;
+              border:1px solid rgba(0,255,255,0.5); padding:1px 4px; }
+
+/* 调音台里的电波分组，由 BT.DENPA_SCHEMA 生成。 */
+.dn-knobs{ margin-top:12px; padding-top:10px;
+           border-top:1px solid rgba(var(--ui-edge-rgb),0.28); }
+.dn-knobs-t{ font:9px/1 ui-monospace,Consolas,monospace; letter-spacing:0.28em;
+             color:#00ffff; opacity:0.8; margin-bottom:8px; }
+.dn-knob{ display:flex; align-items:center; gap:6px; margin:6px 0; }
+.dn-knob-l{ width:3em; flex:none; font-size:10px; opacity:0.75; }
+.dn-knob-i{ flex:1; min-width:0; accent-color:#ff2d95; }
+.dn-knob-v{ width:3em; flex:none; text-align:right;
+            font:9px/1 ui-monospace,Consolas,monospace; color:#ffff00; opacity:0.8; }
+
+/* 低烈度：效果层整体再压一档，闪白与三通道色差整条撤掉。
+   参数侧另有 BT.DENPA_LOWCAP 的硬钳制，两边不互相依赖。 */
+body.low #denpa{ opacity:0.42; }
+body.low .dn-burst,body.low .dn-chroma,body.low .dn-gl{ display:none; }
+body.low .lo-line{ letter-spacing:0.06em; }
+
+/* 低烈度：读数与页饰一起收一档，字仍在，只是不抢画面。 */
+body.low #imprint, body.low #hud{ opacity:0.55; }
+body.low .ch-card{ opacity:0.72; }
+
+@media (max-width:760px){
+  .im-badge{ left:5%; top:5%; width:150px; }
+  .im-side{ display:none; }
+  #hud{ left:3%; bottom:2%; padding-right:10px; }
+  .hu-line{ gap:8px; font-size:9px; }
+  .hu-hint{ display:none; }
+  .ch-card{ top:9%; }
+  .ar-sheet{ padding:18px 15px; }
+  .ar-grid{ grid-template-columns:repeat(3,1fr); }
+  .ar-stats{ gap:11px; }
+  #dn-warn{ top:6px; font-size:8px; letter-spacing:0.02em; }
+  .dn-gl{ font-size:9px; }
+}
+
+/* ============ 静 ============
+   对狂乱版的整个否定：一个字都不留，一根细线都不留。
+   不删任何一层 DOM / SVG，只是让它们退场——去掉 body 的 quiet 类即恢复。
+   留下的只有纯黑底、纯色体量、地平光，以及一圈极淡的沉边。 */
+body.quiet #imprint,
+body.quiet #hud,
+body.quiet #chapter,
+body.quiet #lore,
+body.quiet #dn-warn,
+body.quiet #fs,
+body.quiet #archive,
+body.quiet #panel{ display:none !important; }
+
+body.quiet #paper,
+body.quiet #folio,
+body.quiet #air,
+body.quiet #staff{ display:none; }
+
+body.quiet #denpa .dn-wave,
+body.quiet #denpa .dn-slices,
+body.quiet #denpa .dn-chroma,
+body.quiet #denpa .dn-grain,
+body.quiet #denpa .dn-glyphs,
+body.quiet #denpa .dn-scan,
+body.quiet #denpa .dn-boost,
+body.quiet #denpa .dn-burst{ display:none; }
+
+/* 唯一留下的电波痕迹：一圈收住画面的沉边。没有条纹，没有跳动。 */
+body.quiet #denpa .dn-vignette{ opacity:0.34 !important; }
+body.quiet #denpa{ opacity:1; }
+
+body.quiet{ --dn-chroma:0px !important; --dn-melt:0em !important; --dn-bloom:0 !important; }
+body.quiet #stage{ cursor:default; }

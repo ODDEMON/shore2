@@ -1,0 +1,11 @@
+{
+  "name": "shore-ii-denpa",
+  "version": "2.1.0",
+  "private": true,
+  "description": "谱 · 电波 / SHORE II : DENPA —— 狂乱电波风格、高对比度多巴胺配色的岸不留册留。离线、无构建、无依赖、无后端。",
+  "scripts": {
+    "test": "node test/smoke.mjs",
+    "test:balance": "node test/_balance.mjs",
+    "test:all": "node test/smoke.mjs && node test/_balance.mjs"
+  }
+}

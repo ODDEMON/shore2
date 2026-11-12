@@ -1,0 +1,27 @@
+{"logTime": "1108/155039", "correlationVector":"rs4MTTLw8DfFbFDgEFSHsg.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000y"}}
+{"logTime": "1108/155039", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/155039", "correlationVector":"rs4MTTLw8DfFbFDgEFSHsg.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/155042", "correlationVector":"5yLmpBQfQDq/GViZ/2CxZe.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000n"}}
+{"logTime": "1108/155042", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/155042", "correlationVector":"5yLmpBQfQDq/GViZ/2CxZe.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/155044", "correlationVector":"1HGrj17rU9Q1gQ+L66OBkU.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000g"}}
+{"logTime": "1108/155044", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/155044", "correlationVector":"1HGrj17rU9Q1gQ+L66OBkU.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/155250", "correlationVector":"8U9HFi8XwdgsWMaPgL6VpP.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000x"}}
+{"logTime": "1108/155251", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/155251", "correlationVector":"8U9HFi8XwdgsWMaPgL6VpP.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/160652", "correlationVector":"srzvKqb+PfzXJglzdh1Rwv.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000f"}}
+{"logTime": "1108/160652", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/160652", "correlationVector":"srzvKqb+PfzXJglzdh1Rwv.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/160658", "correlationVector":"x6JpQ51pkWkB3oRbhClE66.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000h"}}
+{"logTime": "1108/160658", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/160658", "correlationVector":"x6JpQ51pkWkB3oRbhClE66.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/160701", "correlationVector":"bhTX0jPL4bNl7Mq4tIalDf.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000s"}}
+{"logTime": "1108/160701", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/160701", "correlationVector":"bhTX0jPL4bNl7Mq4tIalDf.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/161251", "correlationVector":"4bh17TEKYST3LQh87m7A/l.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000q"}}
+{"logTime": "1108/161252", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/161252", "correlationVector":"4bh17TEKYST3LQh87m7A/l.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}
+{"logTime": "1108/161256", "correlationVector":"GWkE4XEQVe3S24m06sATmp.1","action":"SyncServerConnectionManagerRequest", "result":"SYNC_SERVER_OK", "context":{"environment":"Prod_koreasouth_prod-s01-033-apac-koreasouth", "migrationStage":"NotStarted", "server":"akswtt10300000w"}}
+{"logTime": "1108/161256", "correlationVector":"","action":"OnUnrecoverableError", "result":"5"}
+{"logTime": "1108/161256", "correlationVector":"GWkE4XEQVe3S24m06sATmp.2","action":"SyncServerConnectionManagerRequest", "result":"CONNECTION_UNAVAILABLE", "context":{"error_type":"net_error_code", "error_value":"-3"}}

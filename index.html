@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>谱 · 电波 / SHORE II : DENPA</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="quiet">
+<!-- 背景的灯不再是浮在纸面上的圆形光晕，而是建筑站的那条地平线上的一排远处的灯：
+     一条宽光带（垂直渐变，压到 0.88H）+ 三层极扁的灯带（每层一枚软晕 + 一枚亮芯）。
+     全部是渐变矩形与扁椭圆：没有 filter、没有 transform，无头渲染链断不掉。
+     第十七稿：初值给纸白雾，首帧不会闪一下白或彩。 -->
+<svg id="stage" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs>
+    <!-- 地平光带：垂直方向起、亮到地脚线之上再收。stop 的颜色由脚本按事件色板改写。 -->
+    <linearGradient id="gband" x1="0" y1="0" x2="0" y2="1">
+      <!-- 峰值固定在 79%：那就是 0.88H 的地脚线在光带里的位置。
+           末段一路收到 0，底边不许留一道硬边。 -->
+      <stop id="gbandA" offset="0%" stop-color="#ffffff" stop-opacity="0"></stop>
+      <stop id="gbandB" offset="45%" stop-color="#ffffff" stop-opacity="0.05"></stop>
+      <stop id="gbandC" offset="79%" stop-color="#ffffff" stop-opacity="0.2"></stop>
+      <stop id="gbandD" offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+    </linearGradient>
+    <!-- 光穹：一整枚极宽极扁的椭圆，圆心压在地平线上。
+         城市头顶的光污染是一个「穹」而不是几个圆斑——它就是这一枚。 -->
+    <radialGradient id="gd0" cx="50%" cy="50%" r="50%">
+      <stop id="gd0a" offset="0%" stop-color="#ffffff" stop-opacity="0.55"></stop>
+      <stop id="gd0b" offset="40%" stop-color="#ffffff" stop-opacity="0.26"></stop>
+      <stop id="gd0c" offset="72%" stop-color="#ffffff" stop-opacity="0.07"></stop>
+      <stop id="gd0d" offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+    </radialGradient>
+    <!-- 灯带：三层，一主一副一雾白。远近靠半径，软硬靠两层叠。 -->
+    <radialGradient id="gb0" cx="50%" cy="50%" r="50%">
+      <stop id="gb0a" offset="0%" stop-color="#ffffff" stop-opacity="0.55"></stop>
+      <stop id="gb0b" offset="46%" stop-color="#ffffff" stop-opacity="0.22"></stop>
+      <stop id="gb0c" offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+    </radialGradient>
+    <radialGradient id="gb1" cx="50%" cy="50%" r="50%">
+      <stop id="gb1a" offset="0%" stop-color="#ffffff" stop-opacity="0.45"></stop>
+      <stop id="gb1b" offset="46%" stop-color="#ffffff" stop-opacity="0.18"></stop>
+      <stop id="gb1c" offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+    </radialGradient>
+    <radialGradient id="gb2" cx="50%" cy="50%" r="50%">
+      <stop id="gb2a" offset="0%" stop-color="#ffffff" stop-opacity="0.38"></stop>
+      <stop id="gb2b" offset="46%" stop-color="#ffffff" stop-opacity="0.14"></stop>
+      <stop id="gb2c" offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+    </radialGradient>
+    <linearGradient id="fogT" x1="0" y1="0" x2="0" y2="1">
+      <stop id="fogTa" offset="0%" stop-color="#000000" stop-opacity="0.30"></stop>
+      <stop id="fogTb" offset="100%" stop-color="#000000" stop-opacity="0"></stop>
+    </linearGradient>
+    <linearGradient id="fogB" x1="0" y1="0" x2="0" y2="1">
+      <stop id="fogBa" offset="0%" stop-color="#000000" stop-opacity="0"></stop>
+      <stop id="fogBb" offset="100%" stop-color="#000000" stop-opacity="0.30"></stop>
+    </linearGradient>
+  </defs>
+
+  <rect id="sky"></rect>
+  <!-- 纸层：横格、页边红线、页码、地脚线。背景不是「夜空」而是一页夜里的纸。
+       这一层由纸模块独占，score 不往里写一个字节。 -->
+  <g id="paper"></g>
+  <!-- 页饰层：装订孔、裁切标、套印规、纸纤维、版次尺。
+       压在纸上、构成之下，是册子的物理，不是世界的几何。 -->
+  <g id="folio"></g>
+  <!-- 灯层：地平光带 + 远处的灯带。压在纸上（灯是打在纸上的）、构成之下
+       （灯在建筑后面，只从缝里漏出来）。 -->
+  <g id="glow"></g>
+  <g id="shade"></g>
+  <!-- 谱线层：预先铺好的纸，常驻于构成之下；笔画流里没有「画谱线」这一拍。 -->
+  <g id="staff"></g>
+  <g id="world"></g>
+  <g id="marks"></g>
+  <g id="light">
+    <rect id="fogTop" x="0" y="0" width="100%" height="34%" fill="url(#fogT)"></rect>
+    <rect id="fogBot" x="0" y="66%" width="100%" height="34%" fill="url(#fogB)"></rect>
+  </g>
+  <g id="air"></g>
+</svg>
+<!-- 扫描线与暗角：纯 CSS 覆盖层，不进 SVG 绘制链。 -->
+<div id="scan" aria-hidden="true"></div>
+<!-- 电波层：干涉波带 / 切片撕裂 / 三通道色差 / 噪点 / 乱码 / 扫描线 / 闪白。
+     压在 SVG 之上、全部文字 UI 之下——字始终可读，这是安全出口的一半。 -->
+<div id="denpa" aria-hidden="true"></div>
+<!-- 光敏提示：常驻，不自动消失。按 B 的低烈度把频闪与爆发直接归零，不是「调淡一点」。 -->
+<div id="dn-warn" role="note"><b>光敏提示</b>　本版含高对比色差、扫描线与短暂闪白。按 <kbd>B</kbd> 立即切到低烈度（频闪与爆发归零）。</div>
+<!-- 全屏：展品没有按钮栏，右下角只留一枚极淡的入口；F 键与调音台共用同一个开关。 -->
+<button id="fs" data-fs type="button" title="进入全屏（F）" aria-pressed="false">全屏 · F</button>
+<!-- 残页：剧情文本层。纯 DOM 覆盖，不进 SVG 绘制链；不吃输入、不吵读屏。
+     卡片由 world/mod/lore.js 生成一张固定池，只换文字与落点。 -->
+<div id="lore" aria-live="off"></div>
+<!-- 调音台：随机旋钮由 SCHEMA 生成，视野档位由 CAM.modes 生成，C 键呼出，六秒无操作自动收起。 -->
+<div id="panel" hidden></div>
+<!-- 二代的四块纸面 UI。全部是 DOM 覆盖层，不进 SVG 绘制链；
+     位置写在 CSS 里，动只改 opacity 与 width，不碰 transform。 -->
+<div id="imprint" aria-hidden="true"></div>
+<div id="hud" aria-live="off"></div>
+<div id="chapter" aria-live="off"></div>
+<div id="archive" hidden></div>
+<script src="core/registry.js"></script>
+<script src="core/util.js"></script>
+<script src="core/gen.js"></script>
+<script src="core/life.js"></script>
+<script src="core/bus.js"></script>
+<script src="core/store.js"></script>
+<script src="core/sim.js"></script>
+<script src="core/ui.js"></script>
+<script src="core/audio.js"></script>
+<script src="core/app.js"></script>
+<!-- 表先于谱层：score.js 的 PALETTE 直接引用 BT.DENPA_PALETTE，不抄第二份。 -->
+<script src="world/mod/denpa-tables.js"></script>
+<script src="world/mod/score.js"></script>
+<!-- 纸先于笔：score 只往 staff/world 里画，paper 只管背景那张纸。 -->
+<script src="world/mod/paper.js"></script>
+<script src="world/mod/folio.js"></script>
+<script src="world/mod/motes.js"></script>
+<script src="world/mod/denpa.js"></script>
+<script src="world/mod/lore.js"></script>
+<script src="world/mod/chapter.js"></script>
+<script src="world/mod/hud.js"></script>
+<script src="world/mod/archive.js"></script>
+<script src="world/mod/panel.js"></script>
+<script src="world/script.js"></script>
+</body>
+</html>
